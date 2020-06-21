@@ -10,6 +10,15 @@ contention between threads was limiting the throughput of the system. This new
 library, however, is licensed under the BSD two-clause license, and not the
 Cooperative Software License, as decentralise2 is.
 
+![Some timelines generated from profiling decentralise2. The serial listing parser
+took 8 seconds, but has a 2 second pause while it was parsing; the concurrent parser
+took 9 seconds but had no pause; and the concurrent parser with concurrent hash table
+took about 7.5 seconds with no pause.](Images/timelines.png)
+
+This concurrent hash table has improved the performance of decentralise2, as it
+allows node information parsing to occur concurrently with other connections'
+activities. (We made these timelines using [clim.flamegraph](https://github.com/scymtym/clim.flamegraph).)
+
 ## Protocol
 
 `(concurrent-hash-table:make-chash-table &key test segment-hash-function size)`
