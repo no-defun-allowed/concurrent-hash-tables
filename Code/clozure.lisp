@@ -27,7 +27,7 @@
     (if (null value-box)
         (values default-value nil)
         (with-assurance-we-have-a-simple-vector (value-box)
-          (svref value-box 0)))))
+          (values (svref value-box 0) t)))))
 
 (defun (setf getchash) (new-value key hash-table &optional default-value)
   (declare (ignore default-value))
@@ -66,7 +66,7 @@
                  ;; Do nothing.
                  nil))))))
 
-(declaim (inline update-chash mapchash))
+(declaim (inline update-chash mapchash chash-table-count))
 (defun update-chash (function hash-table)
   (declare (function function)
            (hash-table hash-table))
@@ -79,3 +79,6 @@
            hash-table))
 (defun mapchash (function hash-table)
   (maphash function hash-table))
+
+(defun chash-table-count (hash-table)
+  (hash-table-count hash-table))
