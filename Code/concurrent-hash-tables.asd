@@ -4,5 +4,7 @@
   :serial t
   :components ((:file "package")
                (:file "utilities")
-               (:file "segmented")
+               #-ccl (:file "segmented")
+               #+ccl (:file "clozure")
+               (:file "imperative")
                (:file "benchmark")))

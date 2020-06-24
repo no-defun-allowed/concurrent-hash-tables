@@ -19,12 +19,15 @@
         collect (loop repeat keys-per-thread
                       collect (random (expt 2 32)))))
 
+(defvar *tables* '())
+(defvar *keys* 1000000)
+
 (defmacro run-test (name threads constructor task)
   `(progn
-     (present-test ,name)
      (let ((the-table ,constructor)
            (threads '()))
-       (let ((all-threads-keys (generate-keys ,threads 1000000)))
+       (let ((all-threads-keys (generate-keys ,threads (floor *keys* ,threads))))
+         (present-test ,name)
          (dolist (keys all-threads-keys)
            (push (bt:make-thread
                   (lambda ()
@@ -34,9 +37,10 @@
                       (report-finish (get-internal-real-time) start-time))))
                  threads)))
        (mapc #'bt:join-thread threads)
-       the-table)))
+       (push the-table *tables*))))
 
 (defun run-tests ()
+  (setf *tables* '())
   (run-test "Unsynchronised hash table, one thread"
             1
             (make-hash-table :size 1000000)
@@ -51,6 +55,10 @@
             (box (make-hash-table :size 1000000))
             (with-unlocked-box (the-table the-table)
               (incf (gethash key the-table 0))))
+  ;; Note that doing this is "wrong", in the sense that this won't lead to
+  ;; atomic updates in either SBCL or Clozure. If two threads increment the
+  ;; same value at the same time, they will leave in one piece, but the value
+  ;; may only be incremented once instead of twice.
   #+sbcl
   (progn
     (run-test "Synchronised hash table, one thread"
@@ -61,23 +69,38 @@
     (run-test "Synchronised hash table, ten threads"
               10
               (make-hash-table :synchronized t
+                               :size 10000000)
+              (incf (gethash key the-table 0))))
+  #+ccl
+  (progn
+    (run-test "Synchronised hash table, one thread"
+              1
+              (make-hash-table :shared t
+                               :lock-free t
+                               :size 1000000)
+              (incf (gethash key the-table 0)))
+    (run-test "Synchronised hash table, ten threads"
+              10
+              (make-hash-table :shared t
+                               :lock-free t
                                :size 1000000)
               (incf (gethash key the-table 0))))
   (run-test "Concurrent hash table, one thread"
             1
             (make-chash-table :size 1000000
                               :segment-hash-function #'identity)
-            (modchash key the-table
-                      (lambda (old-value present?)
-                        (if present?
-                            (values (1+ old-value) t)
-                            (values 0 nil)))))
+            (modify-value (key the-table)
+                (old-value present?)
+              (if present?
+                  (values (1+ old-value) t)
+                  (values 0 t))))
   (run-test "Concurrent hash table, ten threads"
             10
             (make-chash-table :size 1000000
                               :segment-hash-function #'identity)
-            (modchash key the-table
-                      (lambda (old-value present?)
-                        (if present?
-                            (values (1+ old-value) t)
-                            (values 0 t))))))
+            (modify-value (key the-table)
+                (old-value present?)
+              (if present?
+                  (values (1+ old-value) t)
+                  (values 0 t))))
+  (reverse *tables*))

@@ -101,6 +101,7 @@
 (declaim (inline modchash mapchash))
 (defun modchash (key hash-table modification-function)
   "\"Atomically\" replace the value of a key in a hash table, by calling a modification function with the old value and presence, which returns a new value and presence."
+  (declare (function modification-function))
   (with-segment (segment key hash-table)
     (multiple-value-bind (old-value old-present?)
         (gethash key segment)
@@ -110,16 +111,8 @@
                         old-present? new-present?
                         hash-table)))))
 
-(defmacro modify-value ((key hash-table) (value present?) &body body)
-  (alexandria:with-gensyms (modifier)
-    `(flet ((,modifier (,value ,present?)
-              ,@body))
-       (declare (#+sbcl sb-int:truly-dynamic-extent
-                 #-sbcl dynamic-extent #',modifier)
-                (inline ,modifier))
-       (modchash ,key ,hash-table #',modifier))))
-
 (defun update-chash (function hash-table)
+  (declare (function function))
   (loop for segment across (chash-table-segments hash-table)
         do (with-segment-held (segment)
              (maphash (lambda (key value)
@@ -129,15 +122,6 @@
                                           t new-present?
                                           hash-table)))
                       segment))))
-
-(defmacro do-concurrent-table ((key value hash-table) &body body)
-  (alexandria:with-gensyms (modifier)
-    `(flet ((,modifier (,key ,value)
-              ,@body))
-       (declare (#+sbcl sb-int:truly-dynamic-extent
-                 #-sbcl dynamic-extent #',modifier)
-                (inline ,modifier))
-       (update-chash #',modifier ,hash-table))))
 
 (defun mapchash (function hash-table)
   (loop for segment across (chash-table-segments hash-table)
