@@ -7,7 +7,7 @@
 ;;; concurrency by delegating requests to one of many hash table "segments",
 ;;; locking each individually.
 
-(defconstant +segments+ 16)
+(defconstant +segments+ 64)
 
 (defstruct (chash-table (:constructor %make-chash-table))
   #+ccl (%count 0)
@@ -126,7 +126,7 @@
 (defun mapchash (function hash-table)
   (loop for segment across (chash-table-segments hash-table)
         do (with-segment-held (segment)
-             (maphash function hash-table))))
+             (maphash function segment))))
 
 (defun chash-table-count (hash-table)
   #+(or ccl sbcl) (chash-table-%count hash-table)
