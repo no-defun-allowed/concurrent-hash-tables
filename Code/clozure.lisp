@@ -78,7 +78,9 @@
                          (funcall function key old-value))))
            hash-table))
 (defun mapchash (function hash-table)
-  (maphash function hash-table))
+  (maphash (lambda (key value)
+             (funcall function key (svref value 0)))
+           hash-table))
 
 (defun chash-table-count (hash-table)
   (hash-table-count hash-table))
