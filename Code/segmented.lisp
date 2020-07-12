@@ -17,17 +17,18 @@
   (hash-function #'sxhash :type function))
 
 (defun make-chash-table (&key (test #'eql)
-                              (segment-hash-function #'sxhash)
-                              (size 1000))
+                              (hash-function #'sxhash)
+                              (size 1000)
+                         &allow-other-keys)
   (declare (fixnum size))
   (let* ((segments     (make-array +segments+))
          (segment-size (floor size +segments+))
-         (segment-hash-function
-           (alexandria:ensure-function segment-hash-function))
+         (hash-function
+           (alexandria:ensure-function hash-function))
          (test        (alexandria:ensure-function test))
          (chash-table (%make-chash-table
                        :segments segments
-                       :hash-function segment-hash-function)))
+                       :hash-function hash-function)))
     (dotimes (i +segments+)
       (setf (aref segments i)
             (box (make-hash-table :test test

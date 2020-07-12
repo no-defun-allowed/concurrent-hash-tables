@@ -21,13 +21,12 @@ activities. (We made these timelines using [clim.flamegraph](https://github.com/
 
 ## Protocol
 
-`(concurrent-hash-table:make-chash-table &key test segment-hash-function size)`
+`(concurrent-hash-table:make-chash-table &key test hash-function size)`
 
 Create a concurrent hash table. 
 
-`:segment-hash-function` is a function, which hashes a key to determine what
-segment the key should be stored in; returning some positive fixnum. This 
-defaults to `#'sxhash`, which will work, but may be slow.
+`:hash-function` is a function, which is used somehow by the hash table 
+implementation to hash keys into fixnums.
 
 `:size` is the size of the concurrent hash table, defaulting to 1000.
 
@@ -63,36 +62,31 @@ You may want to run the benchmark to check if *concurrent-hash-tables* is right
 for you:
 
 ```lisp
-CL-USER> (concurrent-hash-table:run-tests)
-
 Testing Unsynchronised hash table, one thread:
-  Finished in 0.14 seconds
+  Finished in 0.12 seconds
 Testing Boxed hash table, one thread:
-  Finished in 0.20 seconds
+  Finished in 0.18 seconds
 Testing Boxed hash table, ten threads:
-  Finished in 9.13 seconds
-  Finished in 9.15 seconds
-  Finished in 9.18 seconds
-  Finished in 9.19 seconds
-  Finished in 9.19 seconds
+  Finished in 0.73 seconds
+  Finished in 0.74 seconds
+  Finished in 0.74 seconds
+  Finished in 0.75 seconds
   ...
 Testing Synchronised hash table, one thread:
-  Finished in 0.27 seconds
+  Finished in 0.25 seconds
 Testing Synchronised hash table, ten threads:
-  Finished in 12.51 seconds
-  Finished in 12.56 seconds
-  Finished in 12.58 seconds
-  Finished in 12.58 seconds
-  Finished in 12.59 seconds
-  ... 
+  Finished in 1.13 seconds
+  Finished in 1.13 seconds
+  Finished in 1.13 seconds
+  Finished in 1.13 seconds
+  ...
 Testing Concurrent hash table, one thread:
-  Finished in 0.11 seconds
+  Finished in 0.25 seconds
 Testing Concurrent hash table, ten threads:
-  Finished in 2.88 seconds
-  Finished in 2.89 seconds
-  Finished in 2.90 seconds
-  Finished in 2.91 seconds
-  Finished in 2.92 seconds
+  Finished in 0.09 seconds
+  Finished in 0.09 seconds
+  Finished in 0.09 seconds
+  Finished in 0.09 seconds
   ...
 ```
 

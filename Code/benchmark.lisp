@@ -17,7 +17,7 @@
 (defun generate-keys (threads keys-per-thread)
   (loop repeat threads
         collect (loop repeat keys-per-thread
-                      collect (random (expt 2 32)))))
+                      collect (random 500000))))
 
 (defvar *tables* '())
 (defvar *keys* 1000000)
@@ -87,7 +87,7 @@
               (incf (gethash key the-table 0))))
   (run-test "Concurrent hash table, one thread"
             1
-            (make-chash-table :size 1000000
+            (make-chash-table :size 10
                               :segment-hash-function #'identity)
             (modify-value (key the-table)
                 (old-value present?)
@@ -96,8 +96,8 @@
                   (values 0 t))))
   (run-test "Concurrent hash table, ten threads"
             10
-            (make-chash-table :size 1000000
-                              :segment-hash-function #'identity)
+            (make-chash-table :size 10
+                              :hash-function #'identity)
             (modify-value (key the-table)
                 (old-value present?)
               (if present?

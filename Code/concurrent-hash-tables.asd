@@ -4,7 +4,12 @@
   :serial t
   :components ((:file "package")
                (:file "utilities")
-               #-ccl (:file "segmented")
-               #+ccl (:file "clozure")
+               #.(cond
+                   ((member :ccl *features*)
+                    '(:file "clozure"))
+                   #+(or)
+                   ((asdf:find-system "luckless" nil)
+                    '(:file "luckless"))
+                   (t '(:file "segmented")))
                (:file "imperative")
                (:file "benchmark")))
