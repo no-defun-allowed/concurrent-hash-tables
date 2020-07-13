@@ -7,8 +7,7 @@
                #.(cond
                    ((member :ccl *features*)
                     '(:file "clozure"))
-                   #+(or)
-                   ((asdf:find-system "luckless" nil)
+                   ((find-package :luckless-hashtable)
                     '(:file "luckless"))
                    (t '(:file "segmented")))
                (:file "imperative")

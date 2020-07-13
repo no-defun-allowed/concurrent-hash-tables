@@ -43,16 +43,16 @@
   (setf *tables* '())
   (run-test "Unsynchronised hash table, one thread"
             1
-            (make-hash-table :size 1000000)
+            (make-hash-table :size 100000)
             (incf (gethash key the-table 0)))
   (run-test "Boxed hash table, one thread"
             1
-            (box (make-hash-table :size 1000000))
+            (box (make-hash-table :size 100000))
             (with-unlocked-box (the-table the-table)
               (incf (gethash key the-table 0))))
-  (run-test "Boxed hash table, ten threads"
-            10
-            (box (make-hash-table :size 1000000))
+  (run-test "Boxed hash table, five threads"
+            5
+            (box (make-hash-table :size 100000))
             (with-unlocked-box (the-table the-table)
               (incf (gethash key the-table 0))))
   ;; Note that doing this is "wrong", in the sense that this won't lead to
@@ -66,10 +66,10 @@
               (make-hash-table :synchronized t
                                :size 1000000)
               (incf (gethash key the-table 0)))
-    (run-test "Synchronised hash table, ten threads"
-              10
+    (run-test "Synchronised hash table, five threads"
+              5
               (make-hash-table :synchronized t
-                               :size 10000000)
+                               :size 1000000)
               (incf (gethash key the-table 0))))
   #+ccl
   (progn
@@ -87,16 +87,18 @@
               (incf (gethash key the-table 0))))
   (run-test "Concurrent hash table, one thread"
             1
-            (make-chash-table :size 10
-                              :segment-hash-function #'identity)
+            (make-chash-table :size 1000000
+                              :test #'eql
+                              :hash-function #'identity)
             (modify-value (key the-table)
                 (old-value present?)
               (if present?
                   (values (1+ old-value) t)
                   (values 0 t))))
-  (run-test "Concurrent hash table, ten threads"
-            10
-            (make-chash-table :size 10
+  (run-test "Concurrent hash table, five threads"
+            5
+            (make-chash-table :size 1000000
+                              :test #'eql
                               :hash-function #'identity)
             (modify-value (key the-table)
                 (old-value present?)
