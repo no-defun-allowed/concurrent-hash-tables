@@ -21,12 +21,19 @@ activities. (We made these timelines using [clim.flamegraph](https://github.com/
 
 ## Protocol
 
-`(concurrent-hash-table:make-chash-table &key test hash-function size)`
+`(concurrent-hash-table:make-chash-table &key test hash-function segment-hash-function size &allow-other-keys)`
 
 Create a concurrent hash table. 
 
 `:hash-function` is a function, which is used somehow by the hash table 
 implementation to hash keys into fixnums.
+`:segment-hash-function` is also a function that produces fixnums from keys,
+but is used by *segmenting* hash tables to pick a segment for each key, and
+thus should be faster and possibly less spread out.
+
+It is expected that `(funcall test k1 k2)` implies
+`(= (funcall hash-function k1) (funcall hash-function k2))` (and similar for
+the `segment-hash-function`.)
 
 `:size` is the size of the concurrent hash table, defaulting to 1000.
 

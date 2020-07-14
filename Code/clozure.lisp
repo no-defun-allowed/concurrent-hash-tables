@@ -9,7 +9,6 @@
 (defun make-chash-table (&key (test #'eql)
                               (size 1000)
                          &allow-other-keys)
-  (declare (ignore segment-hash-function))
   (make-hash-table :test test :size size
                    :lock-free t
                    :shared t))

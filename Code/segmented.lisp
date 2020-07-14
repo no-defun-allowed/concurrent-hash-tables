@@ -17,14 +17,14 @@
   (hash-function #'sxhash :type function))
 
 (defun make-chash-table (&key (test #'eql)
-                              (hash-function #'sxhash)
+                              (segment-hash-function #'sxhash)
                               (size 1000)
                          &allow-other-keys)
   (declare (fixnum size))
   (let* ((segments     (make-array +segments+))
          (segment-size (floor size +segments+))
          (hash-function
-           (alexandria:ensure-function hash-function))
+           (alexandria:ensure-function segment-hash-function))
          (test        (alexandria:ensure-function test))
          (chash-table (%make-chash-table
                        :segments segments

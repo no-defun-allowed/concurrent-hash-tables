@@ -20,7 +20,7 @@
                       collect (random 500000))))
 
 (defvar *tables* '())
-(defvar *keys* 1000000)
+(defvar *keys* 10000000)
 
 (defmacro run-test (name threads constructor task)
   `(progn
@@ -43,16 +43,16 @@
   (setf *tables* '())
   (run-test "Unsynchronised hash table, one thread"
             1
-            (make-hash-table :size 100000)
+            (make-hash-table :size *keys*)
             (incf (gethash key the-table 0)))
   (run-test "Boxed hash table, one thread"
             1
-            (box (make-hash-table :size 100000))
+            (box (make-hash-table :size *keys*))
             (with-unlocked-box (the-table the-table)
               (incf (gethash key the-table 0))))
   (run-test "Boxed hash table, five threads"
             5
-            (box (make-hash-table :size 100000))
+            (box (make-hash-table :size *keys*))
             (with-unlocked-box (the-table the-table)
               (incf (gethash key the-table 0))))
   ;; Note that doing this is "wrong", in the sense that this won't lead to
@@ -64,12 +64,12 @@
     (run-test "Synchronised hash table, one thread"
               1
               (make-hash-table :synchronized t
-                               :size 1000000)
+                               :size *keys*)
               (incf (gethash key the-table 0)))
     (run-test "Synchronised hash table, five threads"
               5
               (make-hash-table :synchronized t
-                               :size 1000000)
+                               :size *keys*)
               (incf (gethash key the-table 0))))
   #+ccl
   (progn
@@ -77,17 +77,17 @@
               1
               (make-hash-table :shared t
                                :lock-free t
-                               :size 1000000)
+                               :size *keys*)
               (incf (gethash key the-table 0)))
     (run-test "Synchronised hash table, ten threads"
               10
               (make-hash-table :shared t
                                :lock-free t
-                               :size 1000000)
+                               :size *keys*)
               (incf (gethash key the-table 0))))
   (run-test "Concurrent hash table, one thread"
             1
-            (make-chash-table :size 1000000
+            (make-chash-table :size *keys*
                               :test #'eql
                               :hash-function #'identity)
             (modify-value (key the-table)
@@ -97,7 +97,7 @@
                   (values 0 t))))
   (run-test "Concurrent hash table, five threads"
             5
-            (make-chash-table :size 1000000
+            (make-chash-table :size *keys*
                               :test #'eql
                               :hash-function #'identity)
             (modify-value (key the-table)
