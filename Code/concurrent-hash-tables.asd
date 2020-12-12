@@ -5,6 +5,9 @@
   :components ((:file "package")
                (:file "utilities")
                #.(cond
+                   ;; The Clozure hash table appears to scale miserably
+                   ;; with multiple threads??
+                   #+(or)
                    ((member :ccl *features*)
                     '(:file "clozure"))
                    ((find-package :luckless-hashtable)
