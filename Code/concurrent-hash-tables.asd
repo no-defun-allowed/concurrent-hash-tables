@@ -10,7 +10,7 @@
                    #+(or)
                    ((member :ccl *features*)
                     '(:file "clozure"))
-                   ((find-package :luckless-hashtable)
+                   ((find-package '#:org.shirakumo.luckless.hashtable)
                     '(:file "luckless"))
                    (t '(:file "segmented")))
                (:file "imperative")

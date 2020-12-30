@@ -88,8 +88,7 @@
   (run-test "Concurrent hash table, one thread"
             1
             (make-chash-table :size *keys*
-                              :test #'eql
-                              :hash-function #'identity)
+                              :test #'eql)
             (modify-value (key the-table)
                 (old-value present?)
               (if present?
@@ -98,8 +97,7 @@
   (run-test "Concurrent hash table, five threads"
             5
             (make-chash-table :size *keys*
-                              :test #'eql
-                              :hash-function #'identity)
+                              :test #'eql)
             (modify-value (key the-table)
                 (old-value present?)
               (if present?
