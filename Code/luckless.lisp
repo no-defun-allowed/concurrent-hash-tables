@@ -8,13 +8,13 @@
 ;;; <https://github.com/no-defun-allowed/luckless> because I implemented
 ;;; MAPHASH there.
 
-(defun make-chash-table (&key (test #'eql)
-                              (hash-function #'sxhash)
+(defun make-chash-table (&rest r
+                         &key (test #'eql)
+                              hash-function
                               (size 1000)
                          &allow-other-keys)
-  (luckless:make-castable :test test
-                          :hash-function hash-function
-                          :size size))
+  (declare (ignore test hash-function size))
+  (apply #'luckless:make-castable :allow-other-keys t r))
 
 (declaim (inline getchash (setf getchash)
                  remchash modchash))

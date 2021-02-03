@@ -7,7 +7,7 @@
 ;;; concurrency by delegating requests to one of many hash table "segments",
 ;;; locking each individually.
 
-(defconstant +segments+ 64)
+(defconstant +segments+ 256)
 
 (defstruct (chash-table (:constructor %make-chash-table))
   #+ccl (%count 0)
@@ -19,6 +19,7 @@
 (defun make-chash-table (&key (test #'eql)
                               (segment-hash-function #'sxhash)
                               (size 1000)
+                              (name "a concurrent hash table")
                          &allow-other-keys)
   (declare (fixnum size))
   (let* ((segments     (make-array +segments+))
@@ -31,8 +32,9 @@
                        :hash-function hash-function)))
     (dotimes (i +segments+)
       (setf (aref segments i)
-            (box (make-hash-table :test test
-                                  :size segment-size))))
+            (make-locked-box :value (make-hash-table :test test
+                                                     :size segment-size)
+                             :lock (bt:make-lock name))))
     chash-table))
 
 (defmacro with-segment-held ((segment) &body body)
