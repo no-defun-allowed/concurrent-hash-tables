@@ -89,7 +89,7 @@
             1
             (make-chash-table :size *keys*
                               :test #'eql
-                              :hash-function #'identity)
+                              :hash-function #'sxhash)
             (modify-value (key the-table)
                 (old-value present?)
               (if present?
@@ -99,7 +99,17 @@
             5
             (make-chash-table :size *keys*
                               :test #'eql
-                              :hash-function #'identity)
+                              :hash-function #'sxhash)
+            (modify-value (key the-table)
+                (old-value present?)
+              (if present?
+                  (values (1+ old-value) t)
+                  (values 0 t))))
+  (run-test "Concurrent hash table, ten threads"
+            10
+            (make-chash-table :size *keys*
+                              :test #'eql
+                              :hash-function #'sxhash)
             (modify-value (key the-table)
                 (old-value present?)
               (if present?

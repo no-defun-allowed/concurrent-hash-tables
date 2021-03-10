@@ -44,13 +44,18 @@ the `segment-hash-function`.)
 `getchash`, `(setf getchash)`, `remchash` and `mapchash` work like their Common 
 Lisp counterparts.
 
+Note that `mapchash` may provide stale values; use `modchash` in the
+provided function if you need conditional updates.
+
 ---
 
 `(modchash key hash-table modification-function)` atomically modifies a key-value
 pair in a hash table, by calling the `modification-function` with its value and
 `t` if the key is present, or some bogus value and `nil` if it is not. The 
 function then returns a new value and true if the key should be present, or 
-some bogus value and `nil` if the key should not.
+some bogus value and `nil` if the key should not. The modification function may
+be called multiple times; generally when the concurrent hash table uses atomics
+instead of locking.
 
 `(modify-value (key hash-table) (value present?) body ...)` is a more 
 "imperative" sugaring over `modchash`.

@@ -1,3 +1,16 @@
+(cl:in-package :cl)
+
+(defpackage :concurrent-hash-table
+  (:use :cl)
+  (:export #:make-chash-table
+           #:getchash #:remchash 
+           #:chash-table-count
+           #:mapchash #:modify-value
+           #:modchash
+           #:update-chash #:do-concurrent-table
+           #:run-tests)
+  (:local-nicknames (#:luckless #:org.shirakumo.luckless.hashtable)))
+
 (in-package :concurrent-hash-table)
 
 ;;; Basically the Clozure implementation, but using Shinmera's
@@ -70,8 +83,9 @@
      (declare (ignore value))
      (modchash key hash-table
                (lambda (old-value present?)
-                 (declare (ignore present?))
-                 (funcall function key old-value))))
+                 (if present?
+                     (funcall function key old-value)
+                     (values nil nil)))))
    hash-table))
 
 (defun mapchash (function hash-table)
