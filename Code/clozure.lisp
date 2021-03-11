@@ -83,3 +83,6 @@
 
 (defun chash-table-count (hash-table)
   (hash-table-count hash-table))
+
+(defun implementation ()
+  :clozure)

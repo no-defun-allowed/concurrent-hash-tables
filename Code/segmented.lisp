@@ -101,7 +101,6 @@
             (increment-hash-table-count hash-table -1))
           nil)))
 
-(declaim (inline modchash mapchash))
 (defun modchash (key hash-table modification-function)
   "\"Atomically\" replace the value of a key in a hash table, by calling a modification function with the old value and presence, which returns a new value and presence."
   (declare (function modification-function))
@@ -140,3 +139,6 @@
 (defmethod print-object ((hash-table chash-table) stream)
   (print-unreadable-object (hash-table stream :type t :identity t)
     (format stream "(~d element~:p)" (chash-table-count hash-table))))
+
+(defun implementation ()
+  :segmented)

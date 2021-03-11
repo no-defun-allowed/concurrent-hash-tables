@@ -1,3 +1,4 @@
+(in-package :cliff-click-test)
 ;;; A port of perf_hash_test.java from high-scale-lib.
 
 (defvar *read-ratio*)
@@ -41,34 +42,28 @@
           (floor (- 100 *read-ratio*) 2)
           (floor (- 100 *read-ratio*) 2)
           *table-size*)
-  (format t "~&Threads from ~d to ~d by ~d"
-          *thread-min* *thread-max* *thread-increment*)
+  (format t "~&Threads from ~d to ~d by ~d on ~:(~a~)"
+          *thread-min* *thread-max* *thread-increment*
+          (concurrent-hash-table:implementation))
   (let ((keymax 1))
     (loop while (< keymax *table-size*)
           do (setf keymax (ash keymax 1)))
     (setf *keys* (make-array keymax))
     (loop for n below (length *keys*)
-            do (setf (aref *keys* n)
-                     (format nil "~Dabc~D"
-                             n (+ (* n 17) 123))))
+          do (setf (aref *keys* n)
+                   (java-string
+                    (format nil "~Dabc~D"
+                            n (+ (* n 17) 123)))))
     (loop for threads from *thread-min* to *thread-max* by *thread-increment*
           do (run-till-stable threads 7))))
 
-(defun string-hash (string)
-  (declare (simple-string string)
-           (optimize (speed 3)))
-  (let ((hash 7))
-    (loop for char across string
-          do (setf hash
-                   (ldb (byte 32 0)
-                        (+ (* hash 31) (char-code char)))))
-    hash))
-
 (defun run-till-stable (threads trials)
+  ;; Fortunately, we re-use String objects, so EQUAL won't barf when given
+  ;; JAVA-STRING instances.
   (let ((table (concurrent-hash-table:make-chash-table
                 :size 1024
                 :test #'equal
-                :hash-function #'string-hash)))
+                :hash-function #'java-string-hash)))
     (format t "~&=== ~3d" threads)
     ;; Quicky sanity check
     (loop for n below 100
@@ -98,12 +93,11 @@
       ;; Print standard deviation and hash table stats?
       )))
 
-(defun run-once (threads table ops nanos)
-  (volatile-setf *start* nil
-                 *stop*  nil)
-  (setf (concurrent-hash-table:getchash "Hayley" table)
-        "Hayley")
-  (concurrent-hash-table:remchash "Hayley" table)
+(defun setup-table (table)
+  (let ((hayley-string (java-string "Hayley")))
+    (setf (concurrent-hash-table:getchash hayley-string table)
+          hayley-string)
+    (concurrent-hash-table:remchash hayley-string table))
   (loop while (< (+ (concurrent-hash-table:chash-table-count table)
                     1024)
                  *table-size*)
@@ -111,7 +105,12 @@
                  for i below 1024
                  for key = (aref *keys*
                                  (logand idx (1- (length *keys*))))
-                 do (setf (concurrent-hash-table:getchash key table) key)))
+                 do (setf (concurrent-hash-table:getchash key table) key))))
+
+(defun run-once (threads table ops nanos)
+  (volatile-setf *start* nil
+                 *stop*  nil)
+  (setup-table table)
   ;; Launch threads
   (let ((threads
           (loop for n below threads
@@ -123,23 +122,30 @@
     (volatile-setf *start* t)
     (sleep 2)
     (volatile-setf *stop* t)
-    (let* ((stop-time (get-internal-real-time))
-           (millis  (/ (- stop-time start-time)
-                       (/ internal-time-units-per-second 1000))))
-      (mapc #'bt:join-thread threads)
-      millis)))
+    (unwind-protect
+         (let* ((stop-time (get-internal-real-time))
+                (millis  (/ (- stop-time start-time)
+                            (/ internal-time-units-per-second 1000))))
+           (mapc #'bt:join-thread threads)
+           millis)
+      (volatile-setf *stop* t))))
+
+(defconstant +multiplier+ #x5DEECE66D)
+(defconstant +addend+ #xB)
+(defconstant +mask+ (1- (ash 1 48))) 
 
 (defun worker-run (n table ops nanos)
-  (let ((state (random (expt 2 64)))
+  (let ((seed    (random (expt 2 64)))
         (get-ops 0)
         (put-ops 0)
         (del-ops 0)
         (start-time (get-internal-real-time)))
+    (declare ((unsigned-byte 64) seed)
+             (optimize (speed 3)))
     (flet ((next-random ()
-             (let ((c (ldb (byte 32 32) state))
-                   (x (ldb (byte 32 0)  state)))
-               (setf state (ldb (byte 64 0) (+ c (* x 4294883355))))
-               (logxor c x))))
+             (let ((next-seed (logand +mask+ (+ (* seed +multiplier+) +addend+))))
+               (setf seed next-seed)
+               (logand +mask+ (ash next-seed -17)))))
       (declare (inline next-random)
                (dynamic-extent #'next-random))
       (loop until *start*)
@@ -150,7 +156,10 @@
                  ((< x *gr*)
                   (incf get-ops)
                   (let ((value (concurrent-hash-table:getchash key table)))
-                    (assert (or (null value) (string= value key)))))
+                    (assert (or (null value)
+                                (eq key value)
+                                (string= (java-string-string value)
+                                         (java-string-string key))))))
                  ((< x *pr*)
                   (incf put-ops)
                   (setf (concurrent-hash-table:getchash key table)

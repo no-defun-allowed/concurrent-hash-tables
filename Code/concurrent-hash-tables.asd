@@ -10,6 +10,8 @@
                    #+(or)
                    ((member :ccl *features*)
                     '(:file "clozure"))
+                   ((find-package '#:threadmill)
+                    '(:file "threadmill"))
                    ((find-package '#:org.shirakumo.luckless.hashtable)
                     '(:file "luckless"))
                    (t '(:file "segmented")))

@@ -3,8 +3,12 @@
   (:export #:run-test))
 (in-package :phony-redis-test)
 
-(defvar *names* (loop for n below 128 by 2 collect (format nil "~r" n)))
-(defvar *other-names* (loop for n from 1 below 128 by 2 collect (format nil "~r" n)))
+(defvar *names*
+  (loop for n below 130 by 2
+        collect (format nil "~r" n)))
+(defvar *other-names*
+  (loop for n from 1 below 128 by 2
+        collect (format nil "~r" n)))
 (defvar *ops* 10000000)
 
 (defun worker (n server
@@ -56,8 +60,8 @@
         (format t "~&~20@a: ~$ seconds (~10d transactions/second)"
                 name time (round throughput))))))
 
-(defun run-test ()
-  (loop for workers from 1 to 10
+(defun run-test (&key (maximum-worker-count 8))
+  (loop for workers from 1 to maximum-worker-count
         do (format t "~&--- ~d worker~:p ---" workers)
            (test "all writes"     workers 1.0 *names*)
            (test "all hit reads"  workers 0.0 *names*)

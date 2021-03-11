@@ -8,7 +8,7 @@
            #:mapchash #:modify-value
            #:modchash
            #:update-chash #:do-concurrent-table
-           #:run-tests)
+           #:implementation)
   (:local-nicknames (#:luckless #:org.shirakumo.luckless.hashtable)))
 
 (in-package :concurrent-hash-table)
@@ -74,7 +74,6 @@
                  ;; Do nothing.
                  nil))))))
 
-(declaim (inline update-chash mapchash chash-table-count))
 (defun update-chash (function hash-table)
   (declare (function function)
            (luckless:castable hash-table))
@@ -93,3 +92,6 @@
 
 (defun chash-table-count (hash-table)
   (luckless:count hash-table))
+
+(defun implementation ()
+  :luckless)
