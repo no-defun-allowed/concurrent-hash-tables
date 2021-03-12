@@ -34,7 +34,7 @@
         *thread-increment* thread-incr
         *table-size* table-size)
   (setf *gr* (floor (ash *read-ratio* 20) 100)
-        *pr* (+ (floor (- (ash 1 20) *gr* 2) *gr*)))
+        *pr* (+ (floor (- (ash 1 20) *gr*) 2) *gr*))
   (let ((trips (floor (- *thread-max* *thread-min*) *thread-increment*)))
     (setf *thread-max* (+ (* trips *thread-increment*) *thread-min*)))
   (format t "~&~d% gets, ~d% inserts, ~d% removes, table size = ~d"
@@ -54,6 +54,10 @@
                    (java-string
                     (format nil "~Dabc~D"
                             n (+ (* n 17) 123)))))
+    (format t "~&=== ~17t ")
+    (dotimes (n 7)
+      (format t " ~10d" n))
+    (format t " ~10@a" "average")
     (loop for threads from *thread-min* to *thread-max* by *thread-increment*
           do (run-till-stable threads 7))))
 
@@ -90,8 +94,7 @@
                (when (zerop j)
                  (format t "  cnts/sec="))
                (format t " ~10d" ops-per-sec))
-      ;; Print standard deviation and hash table stats?
-      )))
+      (format t " ~10d" (round total trials)))))
 
 (defun setup-table (table)
   (let ((hayley-string (java-string "Hayley")))
