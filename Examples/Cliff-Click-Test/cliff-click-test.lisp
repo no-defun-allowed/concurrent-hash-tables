@@ -1,9 +1,10 @@
 (in-package :cliff-click-test)
 ;;; A port of perf_hash_test.java from high-scale-lib.
 
-(defvar *read-ratio*)
-(defvar *gr*)
-(defvar *pr*)
+(declaim ((unsigned-byte 32) *gr* *pr*))
+(sb-ext:defglobal *read-ratio* 0)
+(sb-ext:defglobal *gr* 0)
+(sb-ext:defglobal *pr* 0)
 
 (defvar *thread-min*)
 (defvar *thread-max*)
@@ -13,11 +14,11 @@
   `(sb-thread:barrier (:memory)
      (setf ,@args)))
 
-(defvar *keys*)
+(declaim (simple-vector *keys*))
+(sb-ext:defglobal *keys*  #())
 ;;; remember to do atomic writes on *start* and *stop*
-(defvar *start*)
-(defvar *stop*)
-(defvar *cpus* 12)
+(sb-ext:defglobal *start* nil)
+(sb-ext:defglobal *stop*  nil)
 
 (defun check (x msg lower upper)
   (when (or (< x lower) (> x upper))
@@ -61,6 +62,12 @@
     (loop for threads from *thread-min* to *thread-max* by *thread-increment*
           do (run-till-stable threads 7))))
 
+(defun standard-deviation (results)
+  (let ((mean (/ (reduce #'+ results) (length results))))
+    (sqrt (/ (loop for result across results
+                   sum (expt (- result mean) 2))
+             (length results)))))
+
 (defun run-till-stable (threads trials)
   ;; Fortunately, we re-use String objects, so EQUAL won't barf when given
   ;; JAVA-STRING instances.
@@ -94,7 +101,9 @@
                (when (zerop j)
                  (format t "  cnts/sec="))
                (format t " ~10d" ops-per-sec))
-      (format t " ~10d" (round total trials)))))
+      (format t " ~10d (σ = ~10d)"
+              (round total trials)
+              (standard-deviation results)))))
 
 (defun setup-table (table)
   (let ((hayley-string (java-string "Hayley")))
@@ -108,7 +117,8 @@
                  for i below 1024
                  for key = (aref *keys*
                                  (logand idx (1- (length *keys*))))
-                 do (setf (concurrent-hash-table:getchash key table) key))))
+                 do (setf (concurrent-hash-table:getchash key table) key)
+                    (incf idx))))
 
 (defun run-once (threads table ops nanos)
   (volatile-setf *start* nil
@@ -144,34 +154,41 @@
         (del-ops 0)
         (start-time (get-internal-real-time)))
     (declare ((unsigned-byte 64) seed)
-             (optimize (speed 3)))
-    (flet ((next-random ()
-             (let ((next-seed (logand +mask+ (+ (* seed +multiplier+) +addend+))))
-               (setf seed next-seed)
-               (logand +mask+ (ash next-seed -17)))))
-      (declare (inline next-random)
-               (dynamic-extent #'next-random))
-      (loop until *start*)
-      (loop until *stop*
-            for x   = (ldb (byte 20 0) (next-random))
-            for key = (aref *keys* (logand (next-random) (1- (length *keys*))))
-            do (cond
-                 ((< x *gr*)
-                  (incf get-ops)
-                  (let ((value (concurrent-hash-table:getchash key table)))
-                    (assert (or (null value)
-                                (eq key value)
-                                (string= (java-string-string value)
-                                         (java-string-string key))))))
-                 ((< x *pr*)
-                  (incf put-ops)
-                  (setf (concurrent-hash-table:getchash key table)
-                        key))
-                 (t
-                  (incf del-ops)
-                  (concurrent-hash-table:remchash key table))))
-      (setf (aref ops n)
-            (+ get-ops put-ops del-ops)
-            (aref nanos n)
-            (/ (- (get-internal-real-time) start-time)
-               (/ internal-time-units-per-second 1.0e9))))))
+             ((unsigned-byte 32) get-ops put-ops del-ops)
+             (optimize (speed 3)
+                       #+sbcl
+                       (sb-c::insert-array-bounds-checks 0)))
+    (macrolet ((incf/32 (place)
+                 `(setf ,place (ldb (byte 32 0) (1+ ,place)))))
+      (flet ((next-random ()
+               (let ((next-seed (logand +mask+ (+ (* seed +multiplier+) +addend+))))
+                 (setf seed next-seed)
+                 (ash next-seed -17))))
+        (declare (inline next-random)
+                 (dynamic-extent #'next-random))
+        (loop until *start*)
+        (loop with keys = *keys*
+              with length-1 = (1- (length keys))
+              with gr = *gr*
+              with pr = *pr*
+              until *stop*
+              for x   = (ldb (byte 20 0) (next-random))
+              for key = (aref keys (logand (next-random) length-1))
+              do (cond
+                   ((< x gr)
+                    (incf/32 get-ops)
+                    (let ((value (concurrent-hash-table:getchash key table)))
+                      (assert (or (null value)
+                                  (eq key value)))))
+                   ((< x pr)
+                    (incf/32 put-ops)
+                    (setf (concurrent-hash-table:getchash key table)
+                          key))
+                   (t
+                    (incf/32 del-ops)
+                    (concurrent-hash-table:remchash key table))))
+        (setf (aref ops n)
+              (+ get-ops put-ops del-ops)
+              (aref nanos n)
+              (/ (- (get-internal-real-time) start-time)
+                 (/ internal-time-units-per-second 1.0e9)))))))

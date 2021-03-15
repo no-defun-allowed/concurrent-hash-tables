@@ -12,7 +12,7 @@
     hash))
 
 (defstruct (java-string (:constructor %make-java-string))
-  string
+  (string (make-string 0) :type simple-string)
   (hash 0 :type (unsigned-byte 32)))
 
 (defun java-string (lisp-string)
