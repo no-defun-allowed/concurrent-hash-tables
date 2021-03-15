@@ -5,7 +5,8 @@
                          &allow-other-keys)
   (declare (ignore test hash-function size))
   (apply #'threadmill:make-hash-table rest))
-  
+
+(declaim (inline getchash (setf getchash) remchash))
 (defun getchash (key hash-table &optional (default nil))
   (threadmill:gethash key hash-table default))
 
