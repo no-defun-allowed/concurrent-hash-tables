@@ -72,7 +72,7 @@
   ;; Fortunately, we re-use String objects, so EQUAL won't barf when given
   ;; JAVA-STRING instances.
   (let ((table (concurrent-hash-table:make-chash-table
-                :size 1024
+                :size (length *keys*)
                 :test #'equal
                 :hash-function #'java-string-hash)))
     (format t "~&=== ~3d" threads)
