@@ -118,11 +118,12 @@
                                                (floor total-ops threads)
                                                prefill-per-thread)))))))
       (mapc #'bt:join-thread threads)
-      (let ((spent (/ (- (get-internal-real-time) start-time)
-                      internal-time-units-per-second)))
+      (let ((spent (float (/ (- (get-internal-real-time) start-time)
+                             internal-time-units-per-second))))
         (values total-ops spent
                 (/ total-ops spent)
-                (/ (* spent (workload-threads workload)) total-ops))))))
+                (/ (* spent (workload-threads workload)) total-ops)
+                table)))))
 
 (declaim (inline boolean=))
 (defun boolean= (a b)

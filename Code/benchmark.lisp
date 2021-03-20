@@ -14,10 +14,11 @@
             (/ (- end-time start-time)
                internal-time-units-per-second))))
 
+(defconstant +maximum-key+ 2000000)
 (defun generate-keys (threads keys-per-thread)
   (loop repeat threads
         collect (loop repeat keys-per-thread
-                      collect (random 2000000))))
+                      collect (random +maximum-key+))))
 
 (defvar *tables* '())
 (defvar *keys* 10000000)
@@ -41,63 +42,64 @@
 
 (defun run-tests ()
   (setf *tables* '())
-  (run-test "Unsynchronised hash table, one thread"
-            1
-            (make-hash-table :size *keys*)
-            (incf (gethash key the-table 0)))
-  (run-test "Boxed hash table, one thread"
-            1
-            (box (make-hash-table :size *keys*))
-            (with-unlocked-box (the-table the-table)
-              (incf (gethash key the-table 0))))
-  (run-test "Boxed hash table, five threads"
-            5
-            (box (make-hash-table :size *keys*))
-            (with-unlocked-box (the-table the-table)
-              (incf (gethash key the-table 0))))
-  ;; Note that doing this is "wrong", in the sense that this won't lead to
-  ;; atomic updates in either SBCL or Clozure. If two threads increment the
-  ;; same value at the same time, they will leave in one piece, but the value
-  ;; may only be incremented once instead of twice.
-  #+sbcl
-  (progn
-    (run-test "Synchronised hash table, one thread"
+  (let ((size (min *keys* +maximum-key+)))
+    (run-test "Unsynchronised hash table, one thread"
               1
-              (make-hash-table :synchronized t
-                               :size *keys*)
+              (make-hash-table :size size)
               (incf (gethash key the-table 0)))
-    (run-test "Synchronised hash table, five threads"
+    (run-test "Boxed hash table, one thread"
+              1
+              (box (make-hash-table :size size))
+              (with-unlocked-box (the-table the-table)
+                (incf (gethash key the-table 0))))
+    (run-test "Boxed hash table, five threads"
               5
-              (make-hash-table :synchronized t
-                               :size *keys*)
-              (incf (gethash key the-table 0))))
-  #+ccl
-  (progn
-    (run-test "Synchronised hash table, one thread"
+              (box (make-hash-table :size size))
+              (with-unlocked-box (the-table the-table)
+                (incf (gethash key the-table 0))))
+    ;; Note that doing this is "wrong", in the sense that this won't lead to
+    ;; atomic updates in either SBCL or Clozure. If two threads increment the
+    ;; same value at the same time, they will leave in one piece, but the value
+    ;; may only be incremented once instead of twice.
+    #+sbcl
+    (progn
+      (run-test "Synchronised hash table, one thread"
+                1
+                (make-hash-table :synchronized t
+                                 :size size)
+                (incf (gethash key the-table 0)))
+      (run-test "Synchronised hash table, five threads"
+                5
+                (make-hash-table :synchronized t
+                                 :size size)
+                (incf (gethash key the-table 0))))
+    #+ccl
+    (progn
+      (run-test "Synchronised hash table, one thread"
+                1
+                (make-hash-table :shared t
+                                 :lock-free t
+                                 :size size)
+                (incf (gethash key the-table 0)))
+      (run-test "Synchronised hash table, ten threads"
+                10
+                (make-hash-table :shared t
+                                 :lock-free t
+                                 :size size)
+                (incf (gethash key the-table 0))))
+    (run-test "Concurrent hash table, one thread"
               1
-              (make-hash-table :shared t
-                               :lock-free t
-                               :size *keys*)
-              (incf (gethash key the-table 0)))
-    (run-test "Synchronised hash table, ten threads"
-              10
-              (make-hash-table :shared t
-                               :lock-free t
-                               :size *keys*)
-              (incf (gethash key the-table 0))))
-  (run-test "Concurrent hash table, one thread"
-            1
-            (make-chash-table :size *keys*
-                              :test #'eql
-                              :hash-function #'sxhash)
-            (modify-value (key the-table)
-                (old-value present?)
-              (if present?
-                  (values (1+ old-value) t)
-                  (values 0 t))))
-  (run-test "Concurrent hash table, five threads"
+              (make-chash-table :size size
+                                :test #'eql
+                                :hash-function #'sxhash)
+              (modify-value (key the-table)
+                  (old-value present?)
+                (if present?
+                    (values (1+ old-value) t)
+                    (values 0 t))))
+    (run-test "Concurrent hash table, five threads"
             5
-            (make-chash-table :size *keys*
+            (make-chash-table :size size
                               :test #'eql
                               :hash-function #'sxhash)
             (modify-value (key the-table)
@@ -107,7 +109,7 @@
                   (values 0 t))))
   (run-test "Concurrent hash table, ten threads"
             10
-            (make-chash-table :size *keys*
+            (make-chash-table :size size
                               :test #'eql
                               :hash-function #'sxhash)
             (modify-value (key the-table)
@@ -115,4 +117,5 @@
               (if present?
                   (values (1+ old-value) t)
                   (values 0 t))))
-  (reverse *tables*))
+  (reverse *tables*)))
+  

@@ -74,7 +74,8 @@
   (let ((table (concurrent-hash-table:make-chash-table
                 :size (length *keys*)
                 :test #'equal
-                :hash-function #'java-string-hash)))
+                :hash-function #'java-string-hash
+                :resize-threshold 0.5)))
     (format t "~&=== ~3d" threads)
     ;; Quicky sanity check
     (loop for n below 100
