@@ -42,8 +42,9 @@
   (make-workload
    :mix *cache-mix*
    :threads threads
-   :capacity-lb 24
-   :prefill-ratio 0.8))
+   :capacity-lb 16
+   :prefill-ratio 0.8
+   :operations-ratio 2000.0))
 
 (defvar *cliff-mix*
   (make-mix
