@@ -4,8 +4,7 @@
   (alexandria:with-gensyms (modifier)
     `(flet ((,modifier (,value ,present?)
               ,@body))
-       (declare (#+sbcl sb-int:truly-dynamic-extent
-                 #-sbcl dynamic-extent #',modifier)
+       (declare (dynamic-extent #',modifier)
                 (inline ,modifier))
        (modchash ,key ,hash-table #',modifier))))
 
@@ -13,7 +12,6 @@
   (alexandria:with-gensyms (modifier)
     `(flet ((,modifier (,key ,value)
               ,@body))
-       (declare (#+sbcl sb-int:truly-dynamic-extent
-                 #-sbcl dynamic-extent #',modifier)
+       (declare (dynamic-extent #',modifier)
                 (inline ,modifier))
        (update-chash #',modifier ,hash-table))))
